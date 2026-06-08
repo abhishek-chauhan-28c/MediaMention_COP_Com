@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+from rapidfuzz import fuzz
 import streamlit as st
 
 def file_uploader():
@@ -18,6 +19,9 @@ def file_uploader():
             # loading the file for the Y, N, keyword, Sheet2
             
             data_base = pd.ExcelFile(data_base_raw,engine='openpyxl')
+
+            for i in range(len(data_base.sheet_names)):
+                st.write(f'index {i}, {data_base.sheet_names[i]}' )
             
             # reading the Unique Y sheet
             unique_Y_sheet = data_base.sheet_names[1]
@@ -56,42 +60,35 @@ def file_uploader():
             new_file_data['relevant'] = ''
 
             # Creating the Combine and combine Text columns
-            new_file_data['Combine'] = new_file_data['URL'].astype(str) + new_file_data['Author'].astype(str) + new_file_data['Nickname'].astype(str)
-            new_file_data['combine Text'] = new_file_data['Title'].astype(str) + new_file_data['Text'].astype(str)
+            new_file_data['Combine'] = new_file_data['URL'].astype(str) + ' ' + new_file_data['Author'].astype(str) + ' ' + new_file_data['Nickname'].astype(str)
+            new_file_data['combine Text'] = new_file_data['Title'].astype(str) + ' ' + new_file_data['Text'].astype(str)
             
             # Converting to set SHHEET CODE
-            Sheet2 = Sheet2['User Name'].tolist()
-            sheet_2 = set(Sheet2)
+            Sheet2_pattern = '|'.join(Sheet2['User Name'].str.strip().to_list())
 
-            def assign_value(influencer):
-                if influencer in sheet_2:
-                    return influencer  # or any value you want to assign
-                else:
-                    return None 
-
-            new_file_data['Sheet2'] = new_file_data['Nickname'].apply(assign_value)
+            new_file_data['Sheet_2'] = (new_file_data['Combine'].str.extract(rf'({Sheet2_pattern})', flags=re.IGNORECASE)[0])
 
 
-            key_pattern = '|'.join(keywords['Keywords'].tolist())  # 'reporter|journalist|editor'
+            key_pattern = '|'.join(keywords['keywords'].str.strip().tolist())  # 'reporter|journalist|editor'
 
             # Extract the matched word from the url (if any)
-            new_file_data['Keywords'] = new_file_data['Combine'].str.extract(f'({key_pattern})', flags=re.IGNORECASE)
+            new_file_data['keywords'] = (new_file_data['Combine'].str.extract(rf'({key_pattern})', flags=re.IGNORECASE)[0])
             
             # Adding | operator for the regex 
-            junk_pattern = '|'.join(junkwords['Junk'].tolist())
+            junk_pattern = '|'.join(junkwords['Junk'].str.strip().tolist())
 
             # creating the Junk column
-            new_file_data['Junk'] = new_file_data['combine Text'].str.extract(f'({junk_pattern})',flags=re.IGNORECASE)
+            new_file_data['Junk'] = (new_file_data['combine Text'].str.extract(rf'({junk_pattern})', flags=re.IGNORECASE)[0])
             
             # adding the | operator
-            exclude_pattern = '|'.join(exclude_list_df['Exclude'].tolist())
+            exclude_pattern = '|'.join(exclude_list_df['Exclude'].str.strip().tolist())
 
             # creating the junk exculde column
-            new_file_data['Exclude'] = new_file_data['Combine'].str.extract(f'({exclude_pattern})',flags=re.IGNORECASE)
+            new_file_data['Exclude'] = (new_file_data['Combine'].str.extract(rf'({exclude_pattern})', flags=re.IGNORECASE)[0])
             
             
             # Rearranging the columns
-            new_file_data = new_file_data[['Title','Text','Combine','combine Text','URL','Profile','Subscribers','Source','Resource type','Potential reach','Author', 'Nickname','media mention','relevant','Sheet2','Keywords','Junk','Exclude']]
+            new_file_data = new_file_data[['Title','Text','Combine','combine Text','URL','Profile','Subscribers','Source','Resource type','Potential reach','Author', 'Nickname','media mention','relevant','Sheet_2','keywords','Junk','Exclude']]
 
             
             
