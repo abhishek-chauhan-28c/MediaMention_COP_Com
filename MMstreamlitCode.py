@@ -1,6 +1,5 @@
 import pandas as pd
 import re
-from rapidfuzz import fuzz
 import streamlit as st
 
 def file_uploader():
